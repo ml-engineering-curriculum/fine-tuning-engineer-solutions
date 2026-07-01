@@ -8,9 +8,9 @@
 > 💜 **[Sponsor this curriculum](https://github.com/sponsors/ml-engineering-curriculum)** — sponsorships keep the whole open-source AI Career Curriculum free and moving.
 <!-- /aicg:sponsor -->
 
-Reference implementations for the paired [`fine-tuning-engineer-learning`](https://github.com/ml-engineering-curriculum/fine-tuning-engineer-learning) track.
+Reference implementations for the paired [`fine-tuning-engineer-learning`](https://github.com/ml-engineering-curriculum/fine-tuning-engineer-learning) track — a deep-specialist level-30 curriculum on the post-training stack (SFT, PEFT, preference optimization, safety tuning, eval, quantization, serving, managed APIs, release-level systems design).
 
-> **Status**: scaffolded by `aicg org bootstrap-role`. Module and project solutions arrive over subsequent autonomous cycles.
+> **Status**: paired learning track's curriculum plan authored (2026-06-25). Solutions arrive over subsequent autonomous content cycles. See [`SOLUTIONS_INDEX.md`](SOLUTIONS_INDEX.md) for the planned coverage map.
 
 ## Layout
 
