@@ -2,20 +2,20 @@
 
 ML Engineering Curriculum · Level 30 · [learning](https://github.com/ml-engineering-curriculum/fine-tuning-engineer-learning) · [solutions](https://github.com/ml-engineering-curriculum/fine-tuning-engineer-solutions)
 
-_Generated 2026-11-03 by `aicg org completeness`._
+_Generated 2026-11-08 by `aicg org completeness`._
 
-**Overall: 50%**
+**Overall: 54%**
 
 | | Progress | Count |
 |---|---|---|
 | Learning | `██████████` 100% | 11/11 modules complete |
-| Solutions | `░░░░░░░░░░` 0% | 0/47 exercises solved |
+| Solutions | `█░░░░░░░░░` 9% | 4/47 exercises solved |
 
 ## Modules
 
 | Module | Status | Words | Chapters | Exercises | Quiz | Solutions |
 |---|---|---|---|---|---|---|
-| `mod-101-post-training-foundations` | ✅ Complete | 13,785 | 4 | 4 | — | 0/4 |
+| `mod-101-post-training-foundations` | ✅ Complete | 13,785 | 4 | 4 | — | 4/4 |
 | `mod-102-sft-dataset-engineering` | ✅ Complete | 20,404 | 7 | 5 | — | 0/5 |
 | `mod-103-supervised-fine-tuning` | ✅ Complete | 21,544 | 6 | 5 | — | 0/5 |
 | `mod-104-peft-lora-qlora` | ✅ Complete | 18,544 | 5 | 4 | — | 0/4 |
