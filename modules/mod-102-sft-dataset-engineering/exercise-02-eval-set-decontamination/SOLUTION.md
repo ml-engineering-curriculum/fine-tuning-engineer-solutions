@@ -314,7 +314,7 @@ Row is kept because the only flag is `flagged_ngram_8` on HumanEval, and the rep
 
 | Choice | Why | Alternative | Trade-off |
 |---|---|---|---|
-| Two thresholds (n=8, n=13) | Strict matches published recipes [GPT3][Llama2]; permissive catches partial lifts | Single threshold | Single threshold forces a precision/recall trade-off without exposing it |
+| Two thresholds (n=8, n=13) | Strict matches published recipes [GPT3], [Llama2]; permissive catches partial lifts | Single threshold | Single threshold forces a precision/recall trade-off without exposing it |
 | Word n-grams (not token) | Tokenizer-agnostic; reproducible across model families | Tokenizer n-grams | Tokenizer n-grams are closer to what the trainer sees; harder to compare across projects |
 | Embed backstop on MT-Bench + GSM8K only | They are short / paraphrasable; MMLU is long enough that n-grams suffice | Embed-scan everything | Embed-scan at scale is expensive and FP-prone on generic topic matches |
 | Scan entire conversation (user + assistant) | Leaks happen on either side (response can contain a verbatim HumanEval solution) | Scan user side only | Misses response-side leaks (a model that memorized the solution emits it) |
