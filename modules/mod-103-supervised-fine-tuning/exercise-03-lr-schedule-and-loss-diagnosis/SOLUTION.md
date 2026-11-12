@@ -21,7 +21,7 @@ The worked runs use `meta-llama/Llama-3.2-1B` + `HuggingFaceH4/no_robots` (same 
 | R1 — baseline | 2e-5 | cosine | 0.03 | "Textbook" SFT recipe. Reference curve shape. |
 | R2 — too hot | 1e-4 | cosine | 0.03 | Early-step spike + grad-norm detonation from an LR above the bf16 stable band for a 1B model on this batch. |
 | R3 — no warmup | 2e-5 | cosine | 0.0 | First-step spike; the rest of the curve catches up; more NaN-adjacent step. |
-| R4 — constant | 2e-5 | constant | 0.03 | Late-run overshoot; eval loss turns up while train loss keeps going down. |
+| R4 — constant_with_warmup | 2e-5 | constant_with_warmup | 0.03 | Late-run overshoot; eval loss turns up while train loss keeps going down. Keeps R1's 3% warmup so the only difference vs. R1 is "no decay." |
 
 Every other hyperparameter is held fixed: bf16, batch 2 × 16, seq-len 2048, seed 42, weight decay 0.1, `max_grad_norm=1.0`, eval every 50 steps. Holding the other variables constant is the whole point — the curves differ only because the schedule differs.
 
@@ -42,7 +42,9 @@ RUNS = {
     "R1_baseline":   dict(learning_rate=2e-5, lr_scheduler_type="cosine",   warmup_ratio=0.03),
     "R2_too_hot":    dict(learning_rate=1e-4, lr_scheduler_type="cosine",   warmup_ratio=0.03),
     "R3_no_warmup":  dict(learning_rate=2e-5, lr_scheduler_type="cosine",   warmup_ratio=0.0 ),
-    "R4_constant":   dict(learning_rate=2e-5, lr_scheduler_type="constant", warmup_ratio=0.03),
+    # `constant` in Transformers ignores warmup; use `constant_with_warmup` so R4
+    # isolates "no decay" from R1 without silently dropping R1's 3% warmup too.
+    "R4_constant":   dict(learning_rate=2e-5, lr_scheduler_type="constant_with_warmup", warmup_ratio=0.03),
 }
 
 def load():
@@ -153,7 +155,7 @@ grad_norm :  1.0  → 6.3 (s=1) → 1.2 → ...
 
 Diagnosis: the first-step spike is adaptive-optimizer momentum crashing into un-warmed statistics. `AdamW`'s running moments are zero at step 0; the first step takes nearly the full peak LR as the effective step size in every direction. Warmup = 3–5% exists precisely to let `m` and `v` acquire sensible values before the LR is any larger than a rounding error. The curve recovers because the dataset is big compared to one spiked step, but under packing or small datasets, this spike can be the step that poisons the rest of training. Fix: warmup_ratio ≥ 0.03.
 
-**R4 constant (2e-5, no decay).**
+**R4 constant_with_warmup (2e-5, no decay, same 3% warmup as R1).**
 
 ```
 train_loss: 1.82 → 1.08 (s=200) → 1.00 (s=300)  — monotone down

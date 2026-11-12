@@ -39,9 +39,10 @@ from transformers import PreTrainedTokenizerBase
 
 IGNORE_INDEX = -100
 
-def render_one(tokenizer: PreTrainedTokenizerBase, messages: list[dict]) -> tuple[list[int], list[int]]:
-    """Return (input_ids, labels) for a single conversation using the chat template.
-    `assistant_masks` keeps assistant tokens + terminator trainable.
+def render_one(tokenizer: PreTrainedTokenizerBase, messages: list[dict]) -> tuple[list[int], list[int], list[int]]:
+    """Return (input_ids, labels, assistant_mask) for a single conversation using the
+    chat template. `assistant_mask` is the tokenizer's own 0/1 mask — kept alongside
+    labels so invariants can cross-check membership against an independent source.
     """
     enc = tokenizer.apply_chat_template(
         messages, tokenize=True, add_generation_prompt=False,
@@ -49,7 +50,7 @@ def render_one(tokenizer: PreTrainedTokenizerBase, messages: list[dict]) -> tupl
     )
     ids, amask = enc["input_ids"], enc["assistant_masks"]
     labels = [tid if m == 1 else IGNORE_INDEX for tid, m in zip(ids, amask)]
-    return ids, labels
+    return ids, labels, list(amask)
 
 def pack_examples(tokenizer, conversations, max_seq_length: int):
     """Greedy first-fit decreasing packer. Returns a dict suitable for an FA-varlen
@@ -65,24 +66,25 @@ def pack_examples(tokenizer, conversations, max_seq_length: int):
     """
     rendered = [render_one(tokenizer, c) for c in conversations]
     # Drop oversize; keep a counter the caller can log.
-    rendered = [(ids, lab) for ids, lab in rendered if len(ids) <= max_seq_length]
+    rendered = [(ids, lab, am) for ids, lab, am in rendered if len(ids) <= max_seq_length]
     # FFD: longest first.
     rendered.sort(key=lambda r: -len(r[0]))
 
-    rows = []           # list[list[(ids, labels)]]
-    for ids, lab in rendered:
+    rows = []           # list[list[(ids, labels, assistant_mask)]]
+    for ids, lab, amask in rendered:
         placed = False
         for row in rows:
             if sum(len(x[0]) for x in row) + len(ids) <= max_seq_length:
-                row.append((ids, lab)); placed = True; break
+                row.append((ids, lab, amask)); placed = True; break
         if not placed:
-            rows.append([(ids, lab)])
+            rows.append([(ids, lab, amask)])
 
     pad_id   = tokenizer.pad_token_id
-    input_ids_batch, labels_batch, am_batch, pid_batch, cus = [], [], [], [], []
+    input_ids_batch, labels_batch, am_batch, pid_batch, asst_batch, cus = [], [], [], [], [], []
     for row in rows:
         ids = sum((x[0] for x in row), [])
         lab = sum((x[1] for x in row), [])
+        asst = sum((x[2] for x in row), [])
         # position_ids restart at every doc:
         pids = sum((list(range(len(x[0]))) for x in row), [])
         # per-doc lengths for FA-varlen:
@@ -92,6 +94,7 @@ def pack_examples(tokenizer, conversations, max_seq_length: int):
         if pad_n > 0:
             ids  = ids  + [pad_id] * pad_n
             lab  = lab  + [IGNORE_INDEX] * pad_n
+            asst = asst + [0] * pad_n
             pids = pids + [0] * pad_n          # value doesn't matter; mask will zero it
             # NOTE: the pad run is NOT a new document. It never contributes to loss
             # (labels are -100) and in the FA-varlen path we do not include it in
@@ -102,6 +105,7 @@ def pack_examples(tokenizer, conversations, max_seq_length: int):
         labels_batch.append(lab)
         am_batch.append(am)
         pid_batch.append(pids)
+        asst_batch.append(asst)
         # cu_seqlens: cumulative prefix with a leading 0, int32, FA-2 expects it.
         cu = [0]
         for L in lens: cu.append(cu[-1] + L)
@@ -112,6 +116,7 @@ def pack_examples(tokenizer, conversations, max_seq_length: int):
         "labels":         torch.tensor(labels_batch,    dtype=torch.long),
         "attention_mask": torch.tensor(am_batch,        dtype=torch.long),
         "position_ids":   torch.tensor(pid_batch,       dtype=torch.long),
+        "assistant_mask": torch.tensor(asst_batch,      dtype=torch.long),
         "cu_seqlens":     cus,
     }
 ```
@@ -148,22 +153,42 @@ import torch
 IGNORE_INDEX = -100
 
 def assert_label_mask_assistant_only(tokenizer, batch):
-    """Every unmasked label position decodes to assistant-emitted content OR a
-    known turn terminator; every masked position is non-assistant. We verify the
-    weaker invariant that labels == -100 never collides with the id of the
-    terminator token appearing *immediately* after an assistant turn."""
+    """Label mask must equal the tokenizer's assistant-token ground truth, in both
+    directions: every assistant-mask position is trainable and carries the input id,
+    and every non-assistant position is masked. `assistant_mask` is the independent
+    source of truth produced by `apply_chat_template(..., return_assistant_tokens_mask=True)`
+    (see pack.py §2.2), so an entirely-masked or entirely-trainable batch both fail
+    this invariant rather than passing vacuously."""
     ids, lab = batch["input_ids"], batch["labels"]
+    assert "assistant_mask" in batch, (
+        "batch is missing 'assistant_mask'; packer must emit the tokenizer's own "
+        "assistant-token mask alongside labels for this invariant to be independent")
+    asst = batch["assistant_mask"]
+    pad_tensor = batch["attention_mask"] == 0  # pad positions
     term_ids = set()
     for t in ("<|eot_id|>", "<|im_end|>"):
         tid = tokenizer.convert_tokens_to_ids(t)
         if tid is not None and tid != tokenizer.unk_token_id:
             term_ids.add(tid)
+
+    total_trainable = 0
     for row_i in range(ids.shape[0]):
         for t in range(ids.shape[1]):
-            if lab[row_i, t].item() != IGNORE_INDEX:
+            is_pad = bool(pad_tensor[row_i, t].item())
+            want_trainable = (asst[row_i, t].item() == 1) and not is_pad
+            is_trainable = lab[row_i, t].item() != IGNORE_INDEX
+            assert want_trainable == is_trainable, (
+                f"row {row_i} pos {t}: assistant_mask={int(asst[row_i, t])} "
+                f"pad={is_pad} but labels={'trainable' if is_trainable else 'masked'}")
+            if is_trainable:
                 assert lab[row_i, t].item() == ids[row_i, t].item(), \
                     f"row {row_i} pos {t}: label != input"
-    # weaker-but-fast check: every terminator immediately AFTER an unmasked
+                total_trainable += 1
+    assert total_trainable > 0, (
+        "no trainable positions in this batch — the loss would be NaN and the "
+        "invariant would still trivially pass without this guard")
+
+    # Terminator-after-assistant: every terminator immediately AFTER an unmasked
     # assistant span must itself be unmasked (otherwise model never learns stop).
     for row_i in range(ids.shape[0]):
         row_ids = ids[row_i].tolist(); row_lab = lab[row_i].tolist()

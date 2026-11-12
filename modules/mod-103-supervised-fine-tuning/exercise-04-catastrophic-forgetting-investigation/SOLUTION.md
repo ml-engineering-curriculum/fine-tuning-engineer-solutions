@@ -59,19 +59,32 @@ for name, path in MODELS.items():
     subprocess.check_call(shlex.split(cmd))
 
 # summary.json: mean of per-task percent-regressions vs. base.
+# lm-eval writes results_*.json under a per-model subdirectory whose name is the
+# sanitized `pretrained=...` string, so glob recursively instead of at the top level.
 import statistics as st
-base = json.loads(next((OUT/'base').glob('results_*.json')).read_text())["results"]
+
+# GSM8K reports exact_match under the task's filter names, not "none"; prefer
+# strict-match (matches the exact numeric answer), then flexible-extract.
+_METRIC_KEYS = ("acc,none", "exact_match,none",
+                "exact_match,strict-match", "exact_match,flexible-extract")
+
+def pick_metric(task_result):
+    for k in _METRIC_KEYS:
+        if k in task_result:
+            return task_result[k]
+    raise KeyError(f"no known metric key in {sorted(task_result)}")
+
+def load_results(subdir):
+    path = next(subdir.rglob("results_*.json"))
+    return json.loads(path.read_text())["results"]
+
+base = load_results(OUT / "base")
 rows = {}
 for name in MODELS:
-    r = json.loads(next((OUT/name).glob('results_*.json')).read_text())["results"]
-    rows[name] = {
-        t: r[t].get("acc,none", r[t].get("exact_match,none"))
-        for t in base
-    }
+    r = load_results(OUT / name)
+    rows[name] = {t: pick_metric(r[t]) for t in base}
     rows[name]["forget_pct"] = st.mean(
-        (base[t].get("acc,none", base[t].get("exact_match,none")) -
-         rows[name][t]) /
-        base[t].get("acc,none", base[t].get("exact_match,none"))
+        (pick_metric(base[t]) - rows[name][t]) / pick_metric(base[t])
         for t in base
     )
 (OUT / "summary.json").write_text(json.dumps(rows, indent=2))
@@ -108,7 +121,8 @@ Mix the SFT corpus with a general-capabilities instruction set to keep the model
 ```python
 # train_m2.py — mix no_robots with tulu-3-sft-mixture at 30% replay.
 from datasets import concatenate_datasets, load_dataset
-sft  = load_dataset("HuggingFaceH4/no_robots")["train_sft"]
+ds   = load_dataset("HuggingFaceH4/no_robots")
+sft  = ds["train_sft"] if "train_sft" in ds else ds["train"]
 rep  = load_dataset("allenai/tulu-3-sft-mixture")["train"].shuffle(seed=42)
 # Hold replay at ~30% of the final mix; replace ratio with your target.
 n_rep = int(len(sft) * (0.30 / 0.70))
