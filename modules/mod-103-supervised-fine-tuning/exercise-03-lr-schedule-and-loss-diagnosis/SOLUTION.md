@@ -10,7 +10,7 @@ Three ideas carry the exercise:
 - **The LR schedule is one knob with three effects.** Peak LR sets how fast you move; warmup smooths the first-steps spike; the tail (cosine vs. linear vs. constant) decides whether the model lands softly or keeps bouncing.
 - **"Train loss down" is not the result.** Eval loss, grad norm, parameter-norm drift, tokens-seen, and the sampled generations together are the result. Any single one on its own is defeasible.
 
-The worked runs use `meta-llama/Llama-3.2-1B` + `HuggingFaceH4/no_robots` (same setup as exercise-01) and vary only `learning_rate`, `lr_scheduler_type`, and `warmup_ratio`. Each run is ≤ 300 steps so a learner can produce all four on a single consumer GPU in about an hour [TRL][L3][NOROBOTS].
+The worked runs use `meta-llama/Llama-3.2-1B` + `HuggingFaceH4/no_robots` (same setup as exercise-01) and vary only `learning_rate`, `lr_scheduler_type`, and `warmup_ratio`. Each run is ≤ 300 steps so a learner can produce all four on a single consumer GPU in about an hour [TRL] [L3] [NOROBOTS].
 
 ## 2. Worked implementation
 
@@ -177,9 +177,9 @@ The write-up should answer *in one paragraph per plot*:
 
 Tie claims to published recipes rather than invented numbers:
 
-- Llama-3 SFT recipes from third-party reproductions converge on 1e-5 – 5e-5 peak LR for full-parameter SFT at batch 32–256, bf16 [TRL][L3].
+- Llama-3 SFT recipes from third-party reproductions converge on 1e-5 – 5e-5 peak LR for full-parameter SFT at batch 32–256, bf16 [TRL] [L3].
 - QLoRA SFT (mod-104) lives at 1e-4 – 3e-4 because only the adapter is trained; this does not transfer to full SFT [QLORA].
-- Pretraining peaks (1e-4 – 3e-4 for 1B–7B models) are *not* valid SFT peaks; the dataset is tens-of-thousands rows, not trillions of tokens, and the warmup budget shrinks accordingly [L3][CHINCHILLA].
+- Pretraining peaks (1e-4 – 3e-4 for 1B–7B models) are *not* valid SFT peaks; the dataset is tens-of-thousands rows, not trillions of tokens, and the warmup budget shrinks accordingly [L3] [CHINCHILLA].
 
 If a learner picks an LR, they must also pick a warmup. The two are not independent knobs.
 

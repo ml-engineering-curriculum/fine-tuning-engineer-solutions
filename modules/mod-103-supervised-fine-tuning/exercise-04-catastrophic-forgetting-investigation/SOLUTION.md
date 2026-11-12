@@ -7,7 +7,7 @@ A fine-tuned model that is better on your target task and worse on general knowl
 Three invariants carry the exercise:
 
 - **Baselines are frozen before any training.** Evaluate the base model first, commit the numbers, then fine-tune. Evaluating the base after SFT — "we ran a quick check" — leaks dependencies (same tokenizer state, same cache, same seed drift) and makes the comparison invalid.
-- **Regressions are measured on *held-out* general capabilities, not on the SFT corpus itself.** If the eval set overlaps the SFT training set, forgetting is hidden by memorization. Reuse the MMLU / HellaSwag / GSM8K / TruthfulQA subset logic from mod-108 — the point here is to use benchmarks the SFT data never touched [MMLU][HELLA][GSM8K][TRUTHFULQA].
+- **Regressions are measured on *held-out* general capabilities, not on the SFT corpus itself.** If the eval set overlaps the SFT training set, forgetting is hidden by memorization. Reuse the MMLU / HellaSwag / GSM8K / TruthfulQA subset logic from mod-108 — the point here is to use benchmarks the SFT data never touched [MMLU] [HELLA] [GSM8K] [TRUTHFULQA].
 - **Mitigations are framed as trade-offs, not fixes.** Lower LR, replay with pretraining-style data, and LoRA each reduce forgetting by giving up some SFT gain. The deliverable names the exchange rate — "mitigation M recovered X% of forgetting at the cost of Y% of SFT gain" — not a winner.
 
 The worked investigation reuses the `Llama-3.2-1B` + `no_robots` setup from exercise-01 as the baseline SFT run, then runs two mitigations: (M1) lower LR + fewer epochs, (M2) replay with `allenai/tulu-3-sft-mixture` (a general-capabilities instruction mix) interleaved at 30% [TULU3].
@@ -99,7 +99,7 @@ overrides = dict(
 
 Expected shape: forgetting roughly halves vs. R-SFT. SFT gain drops to roughly 60–80% of R-SFT's gain, depending on which SFT-gain metric was chosen.
 
-Why it works: catastrophic forgetting is a function of integrated update magnitude on the pretraining-distribution weights. Smaller LR × fewer steps = smaller integrated magnitude [LWF][CF-OVERVIEW].
+Why it works: catastrophic forgetting is a function of integrated update magnitude on the pretraining-distribution weights. Smaller LR × fewer steps = smaller integrated magnitude [LWF] [CF-OVERVIEW].
 
 ### 2.4 M2 — mitigation 2: replay (data mixing)
 
@@ -116,7 +116,7 @@ mixed = concatenate_datasets([sft, rep.select(range(n_rep))]).shuffle(seed=42)
 # Rest of the trainer wiring matches exercise-01 (LR 2e-5, 2 epochs, cosine, 3% warmup).
 ```
 
-Expected shape: forgetting shrinks further than M1, often below 20% of R-SFT's forgetting, at approximately the same SFT gain as R-SFT. The replay mixture keeps the model's internal representations close to the pretraining manifold while still learning the target format [REHEARSAL][TULU3].
+Expected shape: forgetting shrinks further than M1, often below 20% of R-SFT's forgetting, at approximately the same SFT gain as R-SFT. The replay mixture keeps the model's internal representations close to the pretraining manifold while still learning the target format [REHEARSAL] [TULU3].
 
 Caveat: the choice of replay data matters more than the ratio. `tulu-3-sft-mixture` was designed as a general-purpose instruction mix [TULU3]; substituting a narrow domain mix (e.g., medical QA only) will steer forgetting toward whatever that domain *doesn't* cover.
 

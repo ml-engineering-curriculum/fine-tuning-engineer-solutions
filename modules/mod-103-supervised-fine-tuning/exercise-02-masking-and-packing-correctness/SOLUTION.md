@@ -11,7 +11,7 @@ The exercise codifies four tests the learner must pass on a packed, loss-masked 
 - **Position IDs restart at every boundary.** Document *k*'s first token has `position_ids == 0`, not the running index in the packed row.
 - **Pads never enter the loss.** Padding tokens anywhere in the batch have `label == -100`.
 
-Modern stacks (TRL ≥ 0.12 + `transformers` ≥ 4.44 + FlashAttention-2 ≥ 2.5 with `flash_attn_varlen_func`, or SDPA + `attention_mask` as a document-id tensor) give you all four if configured correctly [TRL][HFTPL][FA2]. The exercise's point is to prove it, not take it on faith.
+Modern stacks (TRL ≥ 0.12 + `transformers` ≥ 4.44 + FlashAttention-2 ≥ 2.5 with `flash_attn_varlen_func`, or SDPA + `attention_mask` as a document-id tensor) give you all four if configured correctly [TRL] [HFTPL] [FA2]. The exercise's point is to prove it, not take it on faith.
 
 The worked example uses `meta-llama/Llama-3.2-1B` and five hand-picked multi-turn conversations from `HuggingFaceH4/no_robots` — few enough to read every position by hand, varied enough to catch edge cases (short/long, 2-turn/5-turn, assistant-ends-with-code-fence).
 

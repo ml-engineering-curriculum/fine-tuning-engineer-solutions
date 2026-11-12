@@ -8,7 +8,7 @@ Three ideas carry the exercise:
 
 - **Reproducibility is a tolerance, not a boolean.** Full bitwise determinism is possible on a single GPU with specific flags set; cross-GPU or multi-process bitwise reproducibility is in practice unachievable. Declare the tolerance up front ("same final eval loss within 1e-3 on the same hardware; within 5e-3 across H100 SKUs") and measure against it.
 - **A training report is the audit surface, not a lab notebook.** The report names inputs by hash, compute by SKU and dtype, outputs by checksum, and limitations by name. If a reader cannot tell whether the model is safe to deploy from the report alone, the report is incomplete.
-- **Model cards are not optional.** They are the format NIST AI RMF, the EU AI Act, and the community conventions (Mitchell et al., 2019) all converge on for communicating intended use, training data, and limitations [MODELCARD][NIST-AI-RMF][EUAIACT].
+- **Model cards are not optional.** They are the format NIST AI RMF, the EU AI Act, and the community conventions (Mitchell et al., 2019) all converge on for communicating intended use, training data, and limitations [MODELCARD] [NIST-AI-RMF] [EUAIACT].
 
 The exercise re-runs the exercise-01 configuration three times under a reproducibility harness and produces one paper trail covering all three runs.
 
@@ -208,7 +208,7 @@ lm_eval --model hf --model_args pretrained=runs/sft-1b-v1/final,dtype=bfloat16 \
 
 ### 2.7 The model card
 
-The model card sits in the released model directory (`runs/sft-1b-v1/final/README.md`) and is written for downstream users who will never read the training report. Base it on the Mitchell et al. (2019) Model Cards spec and NIST AI RMF's "transparency" obligations [MODELCARD][NIST-AI-RMF]. A minimal model card:
+The model card sits in the released model directory (`runs/sft-1b-v1/final/README.md`) and is written for downstream users who will never read the training report. Base it on the Mitchell et al. (2019) Model Cards spec and NIST AI RMF's "transparency" obligations [MODELCARD] [NIST-AI-RMF]. A minimal model card:
 
 ```markdown
 ---

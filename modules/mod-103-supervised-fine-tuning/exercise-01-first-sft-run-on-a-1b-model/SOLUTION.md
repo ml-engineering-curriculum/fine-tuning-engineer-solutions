@@ -10,7 +10,7 @@ Three invariants carry the exercise:
 - **Labels are assistant-only, terminator included.** Training on the user turn teaches the model to speak the user's part; training without the terminator teaches it to over-generate. TRL's `SFTTrainer` with `assistant_only_loss=True` (chat-templated datasets) is the default correct choice [TRL].
 - **Every number in the training report has a pointer.** Loss, step count, tokens-seen, hardware, seed, dataset hash, git SHA — each one must be derivable from a committed file. "I got 1.42 loss" without the config to reproduce it is not a result.
 
-The worked walkthrough uses `meta-llama/Llama-3.2-1B` as the base and `HuggingFaceH4/no_robots` as the SFT corpus [L3][NOROBOTS]. The structure is unchanged for `Qwen/Qwen2.5-0.5B` or `TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T`; only the chat-template and context-length numbers shift.
+The worked walkthrough uses `meta-llama/Llama-3.2-1B` as the base and `HuggingFaceH4/no_robots` as the SFT corpus [L3] [NOROBOTS]. The structure is unchanged for `Qwen/Qwen2.5-0.5B` or `TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T`; only the chat-template and context-length numbers shift.
 
 ## 2. Worked implementation
 
