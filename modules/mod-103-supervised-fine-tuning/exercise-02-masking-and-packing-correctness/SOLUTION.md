@@ -206,9 +206,11 @@ def assert_label_mask_assistant_only(tokenizer, batch):
        produced by `apply_chat_template(..., return_assistant_tokens_mask=True)`).
        Catches intra-row label corruption.
     2. Assistant spans re-derived from the role-marker tokens in `input_ids`
-       itself via `_assistant_spans_from_markers`. Catches an all-zero, all-one,
-       or shifted `assistant_mask` — which (1) alone would accept tautologically
-       because labels and assistant_mask share one source.
+       itself via `_assistant_spans_from_markers`. Both `assistant_mask` and
+       `labels` are compared to these spans. Comparing LABELS against the
+       spans is the load-bearing step: labels are derived from assistant_mask
+       in render_one, so source (1) alone would accept tautologically. The
+       span check also catches an all-zero, all-one, or shifted `assistant_mask`.
 
     See pack.py §2.2 for where `assistant_mask` originates."""
     ids, lab = batch["input_ids"], batch["labels"]
@@ -246,14 +248,28 @@ def assert_label_mask_assistant_only(tokenizer, batch):
             continue
         cross_checked = True
         want = {t for s, e in spans for t in range(s, e)}
-        got = {t for t in range(ids.shape[1])
-               if asst[row_i, t].item() == 1 and not bool(pad_tensor[row_i, t].item())}
-        assert want == got, (
+        got_mask = {t for t in range(ids.shape[1])
+                    if asst[row_i, t].item() == 1 and not bool(pad_tensor[row_i, t].item())}
+        got_labels = {t for t in range(ids.shape[1])
+                      if lab[row_i, t].item() != IGNORE_INDEX
+                      and not bool(pad_tensor[row_i, t].item())}
+        # Tie BOTH assistant_mask AND labels to role markers. The labels check
+        # is the load-bearing one: labels are built from assistant_mask in
+        # render_one, so loop 1 above is effectively assistant_mask vs itself.
+        # Without `want == got_labels`, an all-masked or all-trainable labels
+        # tensor paired with a matching assistant_mask would pass every other
+        # check and the invariant would be vacuous.
+        assert want == got_mask, (
             f"row {row_i}: role-marker-derived assistant positions disagree with "
-            f"assistant_mask ({len(want ^ got)} positions differ) — label mask cannot be trusted")
+            f"assistant_mask ({len(want ^ got_mask)} positions differ)")
+        assert want == got_labels, (
+            f"row {row_i}: role-marker-derived assistant positions disagree with "
+            f"labels ({len(want ^ got_labels)} positions differ) — labels do not "
+            f"reflect assistant membership and the loss will train on the wrong tokens")
         for s, e in spans:
-            # The terminator sits at e-1 by construction; it must be trainable
-            # so the model learns to stop even when a next packed doc follows.
+            # Terminator-specific sentinel: implied by `want == got_labels`,
+            # but surfaced separately because masking the EOT is the single
+            # most common mis-mask and "model never stops" is the payoff.
             assert lab[row_i, e - 1].item() != IGNORE_INDEX, (
                 f"row {row_i} pos {e-1}: terminator of assistant span [{s},{e}) is masked")
     assert cross_checked, (
