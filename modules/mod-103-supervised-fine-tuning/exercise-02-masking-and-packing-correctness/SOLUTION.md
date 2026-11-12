@@ -152,24 +152,71 @@ Pass as `attention_mask` to `model(**batch)` when using `attn_implementation="sd
 import torch
 IGNORE_INDEX = -100
 
+def _assistant_spans_from_markers(tokenizer, ids_row, attn_row):
+    """Independent ground truth for assistant membership: scan the token stream
+    for role-header patterns and return (start, end) half-open spans covering
+    each assistant turn's content plus its terminator. Does NOT consult
+    `return_assistant_tokens_mask`, so a tokenizer that emits an all-zero,
+    all-one, or shifted mask still yields correct spans here. Supports Llama-3
+    (`<|start_header_id|>assistant<|end_header_id|> ... <|eot_id|>`) and ChatML
+    (`<|im_start|>assistant ... <|im_end|>`). Returns None when neither family's
+    special tokens are in the tokenizer vocabulary."""
+    def _tid(tok):
+        i = tokenizer.convert_tokens_to_ids(tok)
+        return None if i is None or i == tokenizer.unk_token_id else i
+
+    ids, attn = ids_row.tolist(), attn_row.tolist()
+    role = tokenizer.encode("assistant", add_special_tokens=False)
+    N, R = len(ids), len(role)
+    spans, i = [], 0
+
+    s_hdr, e_hdr, eot = _tid("<|start_header_id|>"), _tid("<|end_header_id|>"), _tid("<|eot_id|>")
+    if None not in (s_hdr, e_hdr, eot):
+        while i + R + 2 < N:
+            if (attn[i] and ids[i] == s_hdr
+                and ids[i+1:i+1+R] == role and ids[i+1+R] == e_hdr):
+                start = i + 2 + R
+                j = start
+                while j < N and attn[j] and ids[j] != eot:
+                    j += 1
+                if j < N and ids[j] == eot:
+                    spans.append((start, j + 1)); i = j + 1; continue
+            i += 1
+        return spans
+
+    im_start, im_end = _tid("<|im_start|>"), _tid("<|im_end|>")
+    if None not in (im_start, im_end):
+        while i + R + 1 < N:
+            if attn[i] and ids[i] == im_start and ids[i+1:i+1+R] == role:
+                start = i + 1 + R
+                j = start
+                while j < N and attn[j] and ids[j] != im_end:
+                    j += 1
+                if j < N and ids[j] == im_end:
+                    spans.append((start, j + 1)); i = j + 1; continue
+            i += 1
+        return spans
+
+    return None
+
 def assert_label_mask_assistant_only(tokenizer, batch):
-    """Label mask must equal the tokenizer's assistant-token ground truth, in both
-    directions: every assistant-mask position is trainable and carries the input id,
-    and every non-assistant position is masked. `assistant_mask` is the independent
-    source of truth produced by `apply_chat_template(..., return_assistant_tokens_mask=True)`
-    (see pack.py §2.2), so an entirely-masked or entirely-trainable batch both fail
-    this invariant rather than passing vacuously."""
+    """Label mask must agree with TWO independent sources of truth:
+
+    1. The tokenizer's own assistant-token mask (`batch['assistant_mask']`,
+       produced by `apply_chat_template(..., return_assistant_tokens_mask=True)`).
+       Catches intra-row label corruption.
+    2. Assistant spans re-derived from the role-marker tokens in `input_ids`
+       itself via `_assistant_spans_from_markers`. Catches an all-zero, all-one,
+       or shifted `assistant_mask` — which (1) alone would accept tautologically
+       because labels and assistant_mask share one source.
+
+    See pack.py §2.2 for where `assistant_mask` originates."""
     ids, lab = batch["input_ids"], batch["labels"]
     assert "assistant_mask" in batch, (
         "batch is missing 'assistant_mask'; packer must emit the tokenizer's own "
-        "assistant-token mask alongside labels for this invariant to be independent")
+        "assistant-token mask alongside labels so this invariant has a second source")
     asst = batch["assistant_mask"]
     pad_tensor = batch["attention_mask"] == 0  # pad positions
-    term_ids = set()
-    for t in ("<|eot_id|>", "<|im_end|>"):
-        tid = tokenizer.convert_tokens_to_ids(t)
-        if tid is not None and tid != tokenizer.unk_token_id:
-            term_ids.add(tid)
 
     total_trainable = 0
     for row_i in range(ids.shape[0]):
@@ -188,14 +235,31 @@ def assert_label_mask_assistant_only(tokenizer, batch):
         "no trainable positions in this batch — the loss would be NaN and the "
         "invariant would still trivially pass without this guard")
 
-    # Terminator-after-assistant: every terminator immediately AFTER an unmasked
-    # assistant span must itself be unmasked (otherwise model never learns stop).
+    # Independent cross-check against role markers embedded in input_ids. This
+    # uses a DIFFERENT code path than return_assistant_tokens_mask, so it still
+    # fires when the tokenizer's mask is all-zero / all-one / off-by-one.
+    cross_checked = False
     for row_i in range(ids.shape[0]):
-        row_ids = ids[row_i].tolist(); row_lab = lab[row_i].tolist()
-        for t in range(1, len(row_ids)):
-            if row_lab[t-1] != IGNORE_INDEX and row_ids[t] in term_ids:
-                assert row_lab[t] != IGNORE_INDEX, (
-                    f"row {row_i} pos {t}: terminator after assistant is masked")
+        spans = _assistant_spans_from_markers(
+            tokenizer, ids[row_i], batch["attention_mask"][row_i])
+        if spans is None:
+            continue
+        cross_checked = True
+        want = {t for s, e in spans for t in range(s, e)}
+        got = {t for t in range(ids.shape[1])
+               if asst[row_i, t].item() == 1 and not bool(pad_tensor[row_i, t].item())}
+        assert want == got, (
+            f"row {row_i}: role-marker-derived assistant positions disagree with "
+            f"assistant_mask ({len(want ^ got)} positions differ) — label mask cannot be trusted")
+        for s, e in spans:
+            # The terminator sits at e-1 by construction; it must be trainable
+            # so the model learns to stop even when a next packed doc follows.
+            assert lab[row_i, e - 1].item() != IGNORE_INDEX, (
+                f"row {row_i} pos {e-1}: terminator of assistant span [{s},{e}) is masked")
+    assert cross_checked, (
+        "no row admitted a role-marker cross-check — this invariant would degenerate "
+        "to the tokenizer-vs-itself tautology. Use a Llama-3 or ChatML template, or "
+        "extend _assistant_spans_from_markers for the template in use")
 
 def assert_pads_masked(tokenizer, batch):
     ids, lab = batch["input_ids"], batch["labels"]
