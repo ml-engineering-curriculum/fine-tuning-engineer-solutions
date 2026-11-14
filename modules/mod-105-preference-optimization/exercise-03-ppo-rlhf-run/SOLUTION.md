@@ -6,7 +6,7 @@ The deliverable is a short but complete PPO-RLHF run against the reward model fr
 
 Three ideas carry the exercise:
 
-- **PPO without a reference policy and a KL penalty is reward maximization, not alignment.** Every step adds a `−β · KL(π_θ || π_ref)` term so the policy doesn't wander off the SFT base. KL is the budget; the reward is the goal; the ratio of the two is the training signal [InstructGPT22][PPO17].
+- **PPO without a reference policy and a KL penalty is reward maximization, not alignment.** Every step adds a `−β · KL(π_θ || π_ref)` term so the policy doesn't wander off the SFT base. KL is the budget; the reward is the goal; the ratio of the two is the training signal [InstructGPT22], [PPO17].
 - **Monitor five numbers, not one.** Per step: mean reward, KL to reference, generation length, value loss, and clip fraction. A policy whose reward is climbing while KL blows up and length doubles is reward-hacking, not learning.
 - **The whole thing is a feedback loop, and the RM is the control signal.** The RM's length bias from exercise-02 is now a *training-time* bias. Length penalties, KL coefficient, and adaptive KL control are not optional — they are how you keep the loop stable.
 

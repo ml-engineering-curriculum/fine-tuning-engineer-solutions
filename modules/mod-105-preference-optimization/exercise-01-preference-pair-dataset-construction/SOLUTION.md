@@ -529,7 +529,7 @@ Train / val / test = 85 / 10 / 5. Stratified by
 | Choice | Why | Alternative | Trade-off |
 |---|---|---|---|
 | Single `preference_dimension` per row | Mixing helpful + harmless into one RM yields a model that trades them off arbitrarily | One combined head | Either need separate RMs or a multi-objective loss (mod-106 territory) |
-| Keep `(chosen, rejected)` not `(prompt, score)` | Pairwise is what Bradley–Terry RMs and DPO/SimPO actually consume [InstructGPT22][DPO23] | Pointwise scores only | Pointwise requires calibration; pairs are directly usable |
+| Keep `(chosen, rejected)` not `(prompt, score)` | Pairwise is what Bradley–Terry RMs and DPO/SimPO actually consume [InstructGPT22], [DPO23] | Pointwise scores only | Pointwise requires calibration; pairs are directly usable |
 | `rank Δ ≥ 2` for OASST C(n,2) | Adjacent-rank pairs are near-ties; they inject noise, not signal | Keep all C(n,2) pairs | More rows but worse RM calibration |
 | UFB `margin ≥ 1.0` filter | Pointwise-binarized pairs with tiny margins are judge-noise | No margin filter | ~2× more rows, measurably worse RM on val |
 | Two-template judge agreement for synthetic | Position / template bias is large on single-judge LLM labels | Single-template judge | Easy, but reward model learns the bias |

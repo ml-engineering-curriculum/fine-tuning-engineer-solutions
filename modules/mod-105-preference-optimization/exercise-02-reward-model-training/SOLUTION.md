@@ -6,7 +6,7 @@ The deliverable is a Bradley–Terry reward model trained on the preference pair
 
 Three ideas carry the exercise:
 
-- **A reward model is a classifier, not a regressor.** It maps a `(prompt, response)` into a scalar score, trained with a pairwise log-sigmoid loss so that `r(chosen) > r(rejected)` under the Bradley–Terry model [BT52][InstructGPT22]. Treating it as a regression on human scores is the classic beginner mistake — human raters aren't calibrated, pairs are.
+- **A reward model is a classifier, not a regressor.** It maps a `(prompt, response)` into a scalar score, trained with a pairwise log-sigmoid loss so that `r(chosen) > r(rejected)` under the Bradley–Terry model [BT52], [InstructGPT22]. Treating it as a regression on human scores is the classic beginner mistake — human raters aren't calibrated, pairs are.
 - **Validation pair accuracy is a *necessary* number, not a sufficient one.** A 70%-pair-accuracy RM that hates long responses will steer PPO into terse answers regardless of helpfulness. Every RM report must include: pair accuracy, calibration curve, length correlation, and score drift across a safety / style slice.
 - **The architecture is boring; the loss and the eval are not.** A frozen base + a 1-token score head + pairwise log-sigmoid is the whole model. 90% of what's hard lives in data handling (same tokenization as the policy will use, same chat template, truncation that doesn't chop the chosen in half), evaluation (slice-wise accuracy), and bias diagnostics.
 
