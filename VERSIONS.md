@@ -10,3 +10,4 @@
 | 2026-11-11 | `fill-mod-103-supervised-fine-tuning-solutions` | `mod-103-supervised-fine-tuning` | Fill mod-103-supervised-fine-tuning module exercise solutions |
 | 2026-11-14 | `fill-mod-105-preference-optimization-solutions` | `mod-105-preference-optimization` | Fill mod-105-preference-optimization module exercise solutions |
 | 2026-11-16 | `fill-mod-106-safety-alignment-tuning-solutions` | `mod-106-safety-alignment-tuning` | Fill mod-106-safety-alignment-tuning module exercise solutions |
+| 2026-11-17 | `fill-mod-107-distributed-fine-tuning-solutions` | `mod-107-distributed-fine-tuning` | Fill mod-107-distributed-fine-tuning module exercise solutions |
