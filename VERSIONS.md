@@ -12,3 +12,4 @@
 | 2026-11-16 | `fill-mod-106-safety-alignment-tuning-solutions` | `mod-106-safety-alignment-tuning` | Fill mod-106-safety-alignment-tuning module exercise solutions |
 | 2026-11-17 | `fill-mod-107-distributed-fine-tuning-solutions` | `mod-107-distributed-fine-tuning` | Fill mod-107-distributed-fine-tuning module exercise solutions |
 | 2026-11-18 | `fill-mod-108-evaluating-fine-tuned-models-solutions` | `mod-108-evaluating-fine-tuned-models` | Fill mod-108-evaluating-fine-tuned-models module exercise solutions |
+| 2026-11-20 | `fill-mod-109-quantization-export-serving-solutions` | `mod-109-quantization-export-serving` | Fill mod-109-quantization-export-serving module exercise solutions |
