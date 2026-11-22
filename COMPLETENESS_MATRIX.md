@@ -2,14 +2,14 @@
 
 ML Engineering Curriculum · Level 30 · [learning](https://github.com/ml-engineering-curriculum/fine-tuning-engineer-learning) · [solutions](https://github.com/ml-engineering-curriculum/fine-tuning-engineer-solutions)
 
-_Generated 2026-11-15 by `aicg org completeness`._
+_Generated 2026-11-22 by `aicg org completeness`._
 
-**Overall: 74%**
+**Overall: 93%**
 
 | | Progress | Count |
 |---|---|---|
 | Learning | `██████████` 100% | 11/11 modules complete |
-| Solutions | `█████░░░░░` 49% | 23/47 exercises solved |
+| Solutions | `█████████░` 85% | 40/47 exercises solved |
 
 ## Modules
 
@@ -20,10 +20,10 @@ _Generated 2026-11-15 by `aicg org completeness`._
 | `mod-103-supervised-fine-tuning` | ✅ Complete | 21,544 | 6 | 5 | — | 5/5 |
 | `mod-104-peft-lora-qlora` | ✅ Complete | 18,544 | 5 | 4 | — | 4/4 |
 | `mod-105-preference-optimization` | ✅ Complete | 32,584 | 7 | 5 | — | 5/5 |
-| `mod-106-safety-alignment-tuning` | ✅ Complete | 34,714 | 6 | 4 | — | 0/4 |
-| `mod-107-distributed-fine-tuning` | ✅ Complete | 31,854 | 7 | 4 | — | 0/4 |
-| `mod-108-evaluating-fine-tuned-models` | ✅ Complete | 32,949 | 7 | 5 | — | 0/5 |
-| `mod-109-quantization-export-serving` | ✅ Complete | 33,388 | 7 | 4 | — | 0/4 |
+| `mod-106-safety-alignment-tuning` | ✅ Complete | 34,714 | 6 | 4 | — | 4/4 |
+| `mod-107-distributed-fine-tuning` | ✅ Complete | 31,854 | 7 | 4 | — | 4/4 |
+| `mod-108-evaluating-fine-tuned-models` | ✅ Complete | 32,949 | 7 | 5 | — | 5/5 |
+| `mod-109-quantization-export-serving` | ✅ Complete | 33,388 | 7 | 4 | — | 4/4 |
 | `mod-110-managed-fine-tuning-apis` | ✅ Complete | 32,602 | 7 | 3 | — | 0/3 |
 | `mod-111-post-training-systems-design` | ✅ Complete | 36,463 | 7 | 4 | — | 0/4 |
 
