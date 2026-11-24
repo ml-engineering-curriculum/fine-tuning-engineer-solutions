@@ -13,3 +13,4 @@
 | 2026-11-17 | `fill-mod-107-distributed-fine-tuning-solutions` | `mod-107-distributed-fine-tuning` | Fill mod-107-distributed-fine-tuning module exercise solutions |
 | 2026-11-18 | `fill-mod-108-evaluating-fine-tuned-models-solutions` | `mod-108-evaluating-fine-tuned-models` | Fill mod-108-evaluating-fine-tuned-models module exercise solutions |
 | 2026-11-20 | `fill-mod-109-quantization-export-serving-solutions` | `mod-109-quantization-export-serving` | Fill mod-109-quantization-export-serving module exercise solutions |
+| 2026-11-24 | `fill-mod-111-post-training-systems-design-solutions` | `mod-111-post-training-systems-design` | Fill mod-111-post-training-systems-design module exercise solutions |
